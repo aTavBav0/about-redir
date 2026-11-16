@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redirecting...</title>
+</head>
+<body>
+
+<script>
+(() => {
+    const target = new URLSearchParams(location.search).get("url");
+
+    if (!target) {
+        document.body.textContent = "Missing ?url= parameter.";
+        return;
+    }
+
+    let destination;
+
+    try {
+        const parsed = new URL(target);
+
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+            throw new Error();
+        }
+
+        destination = parsed.href;
+    } catch {
+        document.body.textContent = "Invalid URL.";
+        return;
+    }
+
+    // Open about:blank and populate it immediately.
+    const blank = window.open("about:blank", "_blank");
+
+    if (!blank) {
+        document.body.textContent = "Popup blocked. Allow popups.";
+        return;
+    }
+
+    blank.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Viewer</title>
+            <style>
+                * { margin: 0; padding: 0; }
+                html, body {
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                }
+                iframe {
+                    width: 100%;
+                    height: 100%;
+                    border: 0;
+                    display: block;
+                }
+            </style>
+        </head>
+        <body>
+            <iframe
+                id="viewer"
+                allow="fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; display-capture; picture-in-picture; encrypted-media"
+                allowfullscreen
+                tabindex="0">
+            </iframe>
+            <script>
+                document.getElementById("viewer").src =
+                    ${JSON.stringify(destination)};
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    blank.document.close();
+
+})();
+</script>
+
+</body>
+</html>
