@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,29 +8,67 @@
 
 <script>
 (() => {
-    const target = new URLSearchParams(location.search).get("url");
+    const params = new URLSearchParams(location.search);
+    const viewer = params.get("viewer");
+
+    function validURL(value) {
+        try {
+            const parsed = new URL(value);
+            return ["http:", "https:"].includes(parsed.protocol)
+                ? parsed.href : null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Viewer mode
+    if (viewer) {
+        const destination = validURL(viewer);
+
+        if (!destination) {
+            document.body.textContent = "Invalid URL.";
+            return;
+        }
+
+        document.title = "ㅤ";
+
+        document.body.style.cssText =
+            "margin:0;width:100vw;height:100vh;overflow:hidden";
+
+        const frame = document.createElement("iframe");
+
+        frame.src = destination;
+        frame.allow = "fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; display-capture; picture-in-picture; encrypted-media";
+        frame.allowFullscreen = true;
+        frame.style.cssText =
+            "width:100%;height:100%;border:0;display:block";
+
+        document.body.appendChild(frame);
+
+        // Confirmation belongs to the ABOUT:BLANK viewer.
+        window.addEventListener("beforeunload", (event) => {
+            event.preventDefault();
+            event.returnValue = "";
+        });
+
+        return;
+    }
+
+    // Launcher mode
+    const target = params.get("url");
 
     if (!target) {
         document.body.textContent = "Missing ?url= parameter.";
         return;
     }
 
-    let destination;
+    const destination = validURL(target);
 
-    try {
-        const parsed = new URL(target);
-
-        if (!["http:", "https:"].includes(parsed.protocol)) {
-            throw new Error();
-        }
-
-        destination = parsed.href;
-    } catch {
+    if (!destination) {
         document.body.textContent = "Invalid URL.";
         return;
     }
 
-    // Open about:blank and populate it immediately.
     const blank = window.open("about:blank", "_blank");
 
     if (!blank) {
@@ -45,17 +82,17 @@
         <head>
             <title>ㅤ</title>
             <style>
-                * { margin: 0; padding: 0; }
-                html, body {
-                    width: 100%;
-                    height: 100%;
-                    overflow: hidden;
+                * { margin:0; padding:0; }
+                html,body {
+                    width:100%;
+                    height:100%;
+                    overflow:hidden;
                 }
                 iframe {
-                    width: 100%;
-                    height: 100%;
-                    border: 0;
-                    display: block;
+                    width:100%;
+                    height:100%;
+                    border:0;
+                    display:block;
                 }
             </style>
         </head>
@@ -63,12 +100,18 @@
             <iframe
                 id="viewer"
                 allow="fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; display-capture; picture-in-picture; encrypted-media"
-                allowfullscreen
-                tabindex="0">
+                allowfullscreen>
             </iframe>
+
             <script>
                 document.getElementById("viewer").src =
                     ${JSON.stringify(destination)};
+
+                // Attach the close confirmation to this window.
+                window.addEventListener("beforeunload", (event) => {
+                    event.preventDefault();
+                    event.returnValue = "";
+                });
             <\/script>
         </body>
         </html>
